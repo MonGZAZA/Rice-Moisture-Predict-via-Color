@@ -22,8 +22,8 @@ extract_mod = import_module("01_preprocess_and_extract")
 
 def predict_image(img_path: Path, bundle: dict) -> float:
     """Extract All/Green/Brown color features for img_path and predict moisture%."""
-    paper_compat = bundle.get("extraction_mode", "paper_compat") == "paper_compat"
-    seg_feats = extract_mod.extract_all_segments_from_image(img_path, paper_compat=paper_compat)
+    jpeg_compat = bundle.get("extraction_mode", "jpeg_compat") == "jpeg_compat"
+    seg_feats = extract_mod.extract_all_segments_from_image(img_path, jpeg_compat=jpeg_compat)
     feature_specs = bundle["feature_specs"]
 
     vec: List[float] = []
@@ -48,7 +48,7 @@ def main() -> None:
     parser.add_argument(
         "--model",
         type=Path,
-        default=OUTPUTS_DIR / "paper_296" / "moisture_ols_model.joblib",
+        default=OUTPUTS_DIR / "moisture_ols_model.joblib",
         help="Path to trained moisture_ols_model.joblib",
     )
     args = parser.parse_args()

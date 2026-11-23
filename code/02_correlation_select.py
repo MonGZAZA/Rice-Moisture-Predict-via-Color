@@ -1,10 +1,8 @@
 """Step 2 — Pearson Correlation Analysis & Feature Screening.
 
-Implements Sections IV.E and V.A of the IEEE iSAI-NLP 2025 paper:
-  - Computes Pearson correlation coefficient (r) and two-sided p-value against
-    moisture% for all features across All, Green, and Brown segments (243 total).
-  - Retains features with |r| >= 0.80 and p < 0.01.
-  - Builds the combined selected-feature dataset (Correlated_FULL.csv).
+Computes Pearson correlation coefficient (r) and two-sided p-value against
+moisture% for all features across All, Green, and Brown segments (243 total),
+retaining features with |r| >= 0.80 and p < 0.01 into Correlated_FULL.csv.
 """
 
 from __future__ import annotations
@@ -18,10 +16,10 @@ from scipy.stats import pearsonr
 
 from config import (
     CORR_THRESHOLD,
-    EXTRACTED_PAPER_DIR,
+    FEATURES_DIR,
     OUTPUTS_DIR,
-    PAPER_SELECTED_FEATURES,
     PVALUE_THRESHOLD,
+    SELECTED_FEATURES,
 )
 
 
@@ -30,7 +28,7 @@ def run_correlation_selection(
     out_dir: Path,
     corr_threshold: float = CORR_THRESHOLD,
     pvalue_threshold: float = PVALUE_THRESHOLD,
-    use_paper_order_if_exact_match: bool = True,
+    preserve_feature_order: bool = True,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Compute Pearson correlations across All/Green/Brown CSVs and filter features."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -75,9 +73,9 @@ def run_correlation_selection(
 
     selected_pairs: List[Tuple[str, str]] = list(zip(sel_df["segment"], sel_df["feature"]))
 
-    # Preserve exact paper column order when the exact 38 paper features are selected
-    if use_paper_order_if_exact_match and set(selected_pairs) == set(PAPER_SELECTED_FEATURES):
-        ordered_pairs = list(PAPER_SELECTED_FEATURES)
+    # Preserve canonical column order when matching the 38-feature subset
+    if preserve_feature_order and set(selected_pairs) == set(SELECTED_FEATURES):
+        ordered_pairs = list(SELECTED_FEATURES)
     else:
         ordered_pairs = selected_pairs
 
@@ -110,14 +108,14 @@ def run_correlation_selection(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Pearson correlation screening (paper Sec. IV.E & V.A).")
+    parser = argparse.ArgumentParser(description="Pearson correlation feature screening.")
     parser.add_argument(
         "--features-dir",
         type=Path,
-        default=EXTRACTED_PAPER_DIR,
+        default=FEATURES_DIR,
         help="Directory containing All_color.csv, Green_color.csv, Brown_color.csv",
     )
-    parser.add_argument("--out-dir", type=Path, default=OUTPUTS_DIR / "paper_296", help="Output directory")
+    parser.add_argument("--out-dir", type=Path, default=OUTPUTS_DIR, help="Output directory")
     parser.add_argument("--corr-thresh", type=float, default=CORR_THRESHOLD)
     parser.add_argument("--p-thresh", type=float, default=PVALUE_THRESHOLD)
     args = parser.parse_args()

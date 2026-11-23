@@ -1,6 +1,6 @@
 """Step 1 — Image Preprocessing, Color-Splitting & Color Feature Extraction.
 
-Implements Sections IV.B, IV.C, and IV.D of the IEEE iSAI-NLP 2025 paper:
+Implements the image feature extraction pipeline:
   1. Crop borders to retain only the paddy region.
   2. Hue-only band-stop denoising (reject H in [100, 140] in OpenCV HSV).
   3. HSV color-splitting into Green (H in [25,85], S in [35,255], V in [35,255])
@@ -32,7 +32,7 @@ from config import (
     DENOISE_HUE_LOW,
     GREEN_HSV_LOWER,
     GREEN_HSV_UPPER,
-    MAPPING_ALL_512,
+    MAPPING_CSV,
     OUTPUTS_DIR,
     PICTURES_DIR,
 )
@@ -219,7 +219,7 @@ def _jpg_roundtrip(img_bgr: np.ndarray, quality: int = 95) -> np.ndarray:
 
 def extract_all_segments_from_image(
     img_path: Path,
-    paper_compat: bool = False,
+    jpeg_compat: bool = False,
 ) -> Dict[str, Optional[Dict[str, float]]]:
     """Run full preprocessing + green/brown split + feature extraction for a single image.
 
@@ -227,12 +227,10 @@ def extract_all_segments_from_image(
     ----------
     img_path : Path
         Path to the RGB paddy image.
-    paper_compat : bool, default False
-        If True, mirrors the original RiTcHy_Code.ipynb Colab pipeline (where
-        intermediate cropped, denoised, and green/brown masked images were saved
-        as JPEG files before feature extraction). Required when running inference
-        with the exact paper_296 model trained on the published CSVs.
-        If False (recommended for training new models), keeps masks lossless in memory.
+    jpeg_compat : bool, default False
+        If True, mirrors intermediate JPEG-stage saves before feature extraction
+        (used when predicting with models trained on the pre-extracted feature tables).
+        If False, keeps masks lossless in memory.
     """
     img_bgr = cv2.imread(str(img_path))
     if img_bgr is None:
@@ -240,8 +238,8 @@ def extract_all_segments_from_image(
 
     cropped = crop_paddy_region(img_bgr)
 
-    if paper_compat:
-        # Reproduce RiTcHy_Code.ipynb Cell 2 (PIL jpg q=75) -> Cell 10 (cv2 jpg q=95) -> Cell 13 (cv2 jpg q=95)
+    if jpeg_compat:
+        # Mirror intermediate JPEG saves (crop q=75 -> denoise q=95 -> split q=95)
         cropped_j = _jpg_roundtrip(cropped, quality=75)
         hsv_c = cv2.cvtColor(cropped_j, cv2.COLOR_BGR2HSV)
         denoised = cropped_j.copy()
@@ -321,8 +319,8 @@ def run_extraction(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Extract rice paddy color features (paper Sec. IV.B–D).")
-    parser.add_argument("--mapping", type=Path, default=MAPPING_ALL_512, help="Path to mapping.csv")
+    parser = argparse.ArgumentParser(description="Extract rice paddy color features.")
+    parser.add_argument("--mapping", type=Path, default=MAPPING_CSV, help="Path to mapping.csv")
     parser.add_argument("--pictures", type=Path, default=PICTURES_DIR, help="Directory of paddy images")
     parser.add_argument("--out-dir", type=Path, default=OUTPUTS_DIR / "extracted", help="Output folder for CSVs")
     parser.add_argument("--limit", type=int, default=None, help="Optional limit on number of images to process")

@@ -1,16 +1,14 @@
 """Step 3 — Stratified Split, Standardized OLS Training, Back-Transformation & Evaluation.
 
-Implements Sections IV.F, IV.G, V.B, V.C, Table I, and Fig. 6 of the
-IEEE iSAI-NLP 2025 paper:
-  - 10-decile stratified split: 85% development/training set (N=251),
-    15% held-out testing set (N=45) on the 296-sample paper dataset.
+Performs:
+  - 10-decile stratified split: 85% development/training set, 15% held-out testing set.
   - Z-score standardization fitted strictly on the training set.
   - Ordinary Least Squares (OLS) regression with intercept term.
   - Back-transformation of standardized coefficients into original feature units:
         y_hat = beta_0 + sum(beta_j * x_j)
   - Evaluation on held-out test set: RMSE, MAE, MAPE (%), R^2.
-  - Regression ANOVA table (Table I): SS, df, MS, F-statistic, p-value.
-  - Actual vs. Predicted Moisture scatter plot (Fig. 6).
+  - Regression ANOVA table: SS, df, MS, F-statistic, p-value.
+  - Actual vs. Predicted Moisture scatter plot.
   - Exports trained model bundle (joblib), operational equation, ANOVA CSV,
     test predictions CSV, and metrics JSON.
 """
@@ -35,11 +33,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from config import (
-    EXTRACTED_PAPER_DIR,
+    FEATURES_DIR,
     N_STRATIFY_DECILES,
     OUTPUTS_DIR,
-    PAPER_SELECTED_FEATURES,
     RANDOM_STATE,
+    SELECTED_FEATURES,
     TEST_SIZE,
 )
 
@@ -57,9 +55,9 @@ def train_and_evaluate(
     n_deciles: int = N_STRATIFY_DECILES,
     test_size: float = TEST_SIZE,
     random_state: int = RANDOM_STATE,
-    extraction_mode: str = "paper_compat",
+    extraction_mode: str = "jpeg_compat",
 ) -> Dict[str, Any]:
-    """Run the IEEE paper's training, ANOVA, back-transformation, and held-out evaluation."""
+    """Run stratified split, OLS training, ANOVA, back-transformation, and held-out evaluation."""
     out_dir.mkdir(parents=True, exist_ok=True)
     df = load_dataset(data_path)
 
@@ -152,7 +150,7 @@ def train_and_evaluate(
     equation_str = "moisture% = " + " ".join(eq_terms)
     (out_dir / "regression_equation.txt").write_text(equation_str + "\n", encoding="utf-8")
 
-    # Save held-out test predictions sorted by actual moisture (matching Fig. 6)
+    # Save held-out test predictions sorted by actual moisture
     eval_df = (
         pd.DataFrame({"name": name_test, "actual": y_test, "predicted": y_test_pred})
         .sort_values("actual")
@@ -162,7 +160,7 @@ def train_and_evaluate(
     eval_df["pct_error"] = eval_df["abs_error"] / eval_df["actual"] * 100.0
     eval_df.to_csv(out_dir / "test_predictions.csv", index=False)
 
-    # Fig. 6: Actual vs. Predicted Moisture scatter plot
+    # Actual vs. Predicted Moisture scatter plot
     fig, ax = plt.subplots(figsize=(7.5, 4.8), dpi=180)
     ax.scatter(eval_df.index, eval_df["actual"], label="Actual", s=28, alpha=0.9)
     ax.scatter(eval_df.index, eval_df["predicted"], label="Predicted", s=28, alpha=0.9)
@@ -172,7 +170,7 @@ def train_and_evaluate(
     ax.legend(loc="upper left", frameon=True)
     ax.grid(alpha=0.25, linestyle="--")
     fig.tight_layout()
-    fig_path = out_dir / "fig6_actual_vs_predicted.png"
+    fig_path = out_dir / "actual_vs_predicted.png"
     fig.savefig(fig_path)
     plt.close(fig)
 
@@ -181,8 +179,8 @@ def train_and_evaluate(
         manifest_df = pd.read_csv(manifest_path)
         feature_specs = list(zip(manifest_df["column_name"], manifest_df["segment"], manifest_df["feature"]))
     else:
-        paper_lookup = {feat: seg for seg, feat in PAPER_SELECTED_FEATURES}
-        feature_specs = [(col, paper_lookup.get(col, "Green"), col) for col in feature_cols]
+        seg_lookup = {feat: seg for seg, feat in SELECTED_FEATURES}
+        feature_specs = [(col, seg_lookup.get(col, "Green"), col) for col in feature_cols]
 
     # Save deployable model bundle
     bundle = {
@@ -239,15 +237,15 @@ def train_and_evaluate(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train & evaluate MLR model (paper Sec. IV.F–G & V.B–C).")
+    parser = argparse.ArgumentParser(description="Train and evaluate Multiple Linear Regression model.")
     parser.add_argument(
         "--data",
         type=Path,
-        default=EXTRACTED_PAPER_DIR / "Correlated_FULL.xlsx",
+        default=FEATURES_DIR / "Correlated_FULL.xlsx",
         help="Path to Correlated_FULL.xlsx or Correlated_FULL.csv",
     )
     parser.add_argument("--manifest", type=Path, default=None, help="Optional selected_feature_manifest.csv")
-    parser.add_argument("--out-dir", type=Path, default=OUTPUTS_DIR / "paper_296", help="Output directory")
+    parser.add_argument("--out-dir", type=Path, default=OUTPUTS_DIR, help="Output directory")
     parser.add_argument("--test-size", type=float, default=TEST_SIZE)
     parser.add_argument("--seed", type=int, default=RANDOM_STATE)
     args = parser.parse_args()
