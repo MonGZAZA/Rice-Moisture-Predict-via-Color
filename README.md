@@ -1,15 +1,14 @@
 # Rice Paddy Moisture Prediction via Image Color Analysis
 
-[![IEEE iSAI-NLP 2025](https://img.shields.io/badge/IEEE-iSAI--NLP%202025-00629B?logo=ieee&logoColor=white)](#citation)
+[![IEEE Xplore](https://img.shields.io/badge/IEEE%20Xplore-iSAI--NLP%202025-00629B?logo=ieee&logoColor=white)](https://ieeexplore.ieee.org/document/11320486)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](code/requirements.txt)
-[![Reproducibility](https://img.shields.io/badge/Paper%20Metrics-Exact%20Match-2EA44F)](#reproduced-results-ieee-isai-nlp-2025)
 
-Official reproducible codebase and dataset for the IEEE iSAI-NLP 2025 paper:
+Official codebase and dataset for the IEEE iSAI-NLP 2025 paper:
 
-> **Developing Prediction Model for Estimating Moisture of Rice Paddy using Correlation Between Color Values of Rice Paddy and Moisture Content**  
+> **[Developing Prediction Model for Estimating Moisture of Rice Paddy using Correlation Between Color Values of Rice Paddy and Moisture Content](https://ieeexplore.ieee.org/document/11320486)**  
 > *Kirati Pothidang, Ritchanon Bunseng, Waiyawat Suansawan*  
 > Department of Mathematics, Princess Chulabhorn Science High School Phetchaburi, Thailand  
-> `979-8-3315-0217-1/25/$31.00 ©2025 IEEE`
+> Published in *IEEE iSAI-NLP 2025* · [Read on IEEE Xplore](https://ieeexplore.ieee.org/document/11320486)
 
 ---
 
@@ -47,22 +46,22 @@ All raw paddy images were captured under controlled lighting in a 20 × 20 cm li
 
 ---
 
-## Reproduced Results (IEEE iSAI-NLP 2025)
+## Results (IEEE iSAI-NLP 2025)
 
-Running `python3 code/run_pipeline.py --mode paper` reproduces the published held-out test metrics on the 10-decile stratified 85/15 split (`N_train = 251`, `N_test = 45`, `seed = 42`):
+Evaluated on the 296-sample dataset using a 10-decile stratified 85/15 split (`N_train = 251`, `N_test = 45`, `seed = 42`):
 
-| Metric | Published Paper | This Repository |
-| :--- | :---: | :---: |
-| Total Studied Variables | 243 (81 × 3 segments) | **243** |
-| Retained Features (`\|r\| ≥ 0.80`, `p < 0.01`) | 38 (36 Green + 2 Full) | **38 (36 Green + 2 Full)** |
-| Top Single Predictor | Green `Entropy_S` | **`r = +0.8964` (`p = 6.51e-106`)** |
-| Held-out **RMSE** | 2.270% | **2.270%** |
-| Held-out **MAE** | 1.703% | **1.703%** |
-| Held-out **MAPE** | 9.75% | **9.75%** |
-| Held-out **R²** | 0.840 | **0.840** |
-| Training **R² / Adjusted R²** | — | **0.901 / 0.884** |
-| Regression ANOVA **F(38, 212)** | 51.026 (`p = 6.93e-87`) | **51.013 (`p = 7.11e-87`)** |
-| Regression ANOVA **SS_Total / MS_Res** | 8431.127 / 3.9198 | **8431.127 / 3.9198** |
+| Metric | Value |
+| :--- | :---: |
+| Total Studied Variables | 243 (81 × 3 segments) |
+| Retained Features (`\|r\| ≥ 0.80`, `p < 0.01`) | 38 (36 Green + 2 Full) |
+| Top Single Predictor | Green `Entropy_S` (`r = +0.8964`, `p = 6.51e-106`) |
+| Held-out **RMSE** | **2.270%** |
+| Held-out **MAE** | **1.703%** |
+| Held-out **MAPE** | **9.75%** |
+| Held-out **R²** | **0.840** |
+| Training **R² / Adjusted R²** | 0.901 / 0.884 |
+| Regression ANOVA **F(38, 212)** | 51.013 (`p = 7.11e-87`) |
+| Regression ANOVA **SS_Total / MS_Res** | 8431.127 / 3.9198 |
 
 ### Actual vs. Predicted Moisture (Fig. 6)
 
@@ -151,7 +150,8 @@ If you use this code or dataset in your research, please cite:
   title     = {Developing Prediction Model for Estimating Moisture of Rice Paddy using Correlation Between Color Values of Rice Paddy and Moisture Content},
   booktitle = {Proceedings of the International Joint Symposium on Artificial Intelligence and Natural Language Processing (iSAI-NLP 2025)},
   year      = {2025},
-  publisher = {IEEE}
+  publisher = {IEEE},
+  url       = {https://ieeexplore.ieee.org/document/11320486}
 }
 ```
 
