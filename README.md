@@ -35,13 +35,20 @@ flowchart LR
 
 ## Dataset
 
-All raw paddy images were captured under controlled lighting in a 20 × 20 cm lightbox at **4896 × 3264** resolution using Thai rice paddy samples supplied by Poonsin Thai Ricemill (Suphanburi, Thailand).
+### Data Collection & Setup
+
+- **Location / Source:** Thai rice paddy samples supplied by **Poonsin Thai Ricemill** (Suphanburi, Thailand).
+- **Imaging Setup:** Controlled **20 × 20 cm lightbox** with fixed artificial lighting, camera distance, and angle.
+- **Camera & Settings:** **FUJIFILM X100T** (`4896 × 3264` px), fixed **ISO 200**, aperture **f/11**, shutter speed ~`1/10` – `1/14` s (consistent across all 512 images).
+- **Collection Timeline & Dataset Scope:**
+  - **`0001.jpg`–`0296.jpg` (296 samples, Jun 2024 – Apr 2025):** Initial collection used for feature selection, OLS model training, and all results reported in the IEEE iSAI-NLP 2025 paper (`data/features/`).
+  - **`0297.jpg`–`0512.jpg` (216 samples, Jul 2025 – Aug 2025):** Additional samples collected afterward under the exact same FUJIFILM X100T lightbox setup (moisture `12.7%`–`30.1%`), expanding `data/pictures/` and `data/mapping.csv` to **512 labeled samples** total.
 
 | File / Folder | Samples | Moisture Range | Description |
 | :--- | :---: | :---: | :--- |
-| `data/mapping.csv` | **512** | 9.6% – 30.2% (mean 21.17%) | Ground-truth moisture labels (`0001.jpg`–`0512.jpg`) |
-| `data/pictures/` | **512** | — | Raw RGB lightbox paddy images (`0001.jpg`–`0512.jpg`) |
-| `data/features/` | **296** | 9.6% – 30.2% (mean 21.08%) | Extracted color feature tables (`All_color.csv`, `Green_color.csv`, `Brown_color.csv`, `Correlated_FULL.xlsx`) |
+| `data/mapping.csv` | **512** | 9.6% – 30.2% (mean 21.17%) | Complete ground-truth moisture labels (`0001.jpg`–`0512.jpg`) |
+| `data/pictures/` | **512** | — | Raw FUJIFILM X100T lightbox paddy images (`0001.jpg`–`0512.jpg`) |
+| `data/features/` | **296** | 9.6% – 30.2% (mean 21.08%) | Extracted color feature tables for the initial 296-sample paper dataset (`All_color.csv`, `Green_color.csv`, `Brown_color.csv`, `Correlated_FULL.xlsx`) |
 
 ---
 
