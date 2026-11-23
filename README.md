@@ -39,16 +39,17 @@ flowchart LR
 
 - **Location / Source:** Thai rice paddy samples supplied by **Poonsin Thai Ricemill** (Suphanburi, Thailand).
 - **Imaging Setup:** Controlled **20 × 20 cm lightbox** with fixed artificial lighting, camera distance, and angle.
-- **Camera & Settings:** **FUJIFILM X100T** (`4896 × 3264` px), fixed **ISO 200**, aperture **f/11**, shutter speed ~`1/10` – `1/14` s (consistent across all 512 images).
+- **Camera & Settings:** **FUJIFILM X100T** (`4896 × 3264` px), fixed **ISO 200**, aperture **f/11**, shutter speed ~`1/10` – `1/14` s (consistent across all captures).
 - **Collection Timeline & Dataset Scope:**
-  - **`0001.jpg`–`0296.jpg` (296 samples, Jun 2024 – Apr 2025):** Initial collection used for feature selection, OLS model training, and all results reported in the IEEE iSAI-NLP 2025 paper (`data/features/`).
-  - **`0297.jpg`–`0512.jpg` (216 samples, Jul 2025 – Aug 2025):** Additional samples collected afterward under the exact same FUJIFILM X100T lightbox setup (moisture `12.7%`–`30.1%`), expanding `data/pictures/` and `data/mapping.csv` to **512 labeled samples** total.
+  - **Main Dataset (`0001.jpg`–`0296.jpg`, 296 samples, Jun 2024 – Apr 2025):** Initial collection used for feature selection (`data/features/`), OLS model training, and all results reported in the IEEE iSAI-NLP 2025 paper and `outputs/`.
+  - **Extra Dataset (`data/extra_dataset/`, `0297.jpg`–`0512.jpg`, 216 samples, Jul 2025 – Aug 2025):** Additional samples collected afterward under the exact same FUJIFILM X100T lightbox setup (moisture `12.7%`–`30.1%`, mean `21.28%`), stored separately with its own `mapping.csv` and `pictures/`.
 
 | File / Folder | Samples | Moisture Range | Description |
 | :--- | :---: | :---: | :--- |
-| `data/mapping.csv` | **512** | 9.6% – 30.2% (mean 21.17%) | Complete ground-truth moisture labels (`0001.jpg`–`0512.jpg`) |
-| `data/pictures/` | **512** | — | Raw FUJIFILM X100T lightbox paddy images (`0001.jpg`–`0512.jpg`) |
-| `data/features/` | **296** | 9.6% – 30.2% (mean 21.08%) | Extracted color feature tables for the initial 296-sample paper dataset (`All_color.csv`, `Green_color.csv`, `Brown_color.csv`, `Correlated_FULL.xlsx`) |
+| `data/mapping.csv` | **296** | 9.6% – 30.2% (mean 21.08%) | Ground-truth moisture labels (`0001.jpg`–`0296.jpg`) |
+| `data/pictures/` | **296** | — | Raw FUJIFILM X100T lightbox paddy images (`0001.jpg`–`0296.jpg`) |
+| `data/features/` | **296** | 9.6% – 30.2% (mean 21.08%) | Extracted color feature tables (`All_color.csv`, `Green_color.csv`, `Brown_color.csv`, `Correlated_FULL.xlsx`) |
+| `data/extra_dataset/` | **216** | 12.7% – 30.1% (mean 21.28%) | Later collection (`mapping.csv` + `pictures/` for `0297.jpg`–`0512.jpg`) |
 
 ---
 
@@ -84,13 +85,16 @@ rice-moisture-prediction/
 ├── README.md
 ├── .gitignore
 ├── data/
-│   ├── mapping.csv                        # Ground-truth moisture labels (0001.jpg–0512.jpg)
-│   ├── pictures/                          # Raw lightbox images (0001.jpg–0512.jpg)
-│   └── features/                          # Extracted color feature tables
-│       ├── All_color.csv
-│       ├── Green_color.csv
-│       ├── Brown_color.csv
-│       └── Correlated_FULL.xlsx
+│   ├── mapping.csv                        # Ground-truth moisture labels (0001.jpg–0296.jpg)
+│   ├── pictures/                          # Raw lightbox images (0001.jpg–0296.jpg)
+│   ├── features/                          # Extracted 296-sample color feature tables
+│   │   ├── All_color.csv
+│   │   ├── Green_color.csv
+│   │   ├── Brown_color.csv
+│   │   └── Correlated_FULL.xlsx
+│   └── extra_dataset/                     # Later collection (0297.jpg–0512.jpg)
+│       ├── mapping.csv
+│       └── pictures/
 ├── code/
 │   ├── config.py                          # Hyperparameters, HSV ranges, and feature manifest
 │   ├── 01_preprocess_and_extract.py       # Crop, Hue denoise, HSV split, 81×3 color features
