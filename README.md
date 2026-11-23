@@ -3,12 +3,12 @@
 [![IEEE Xplore](https://img.shields.io/badge/IEEE%20Xplore-iSAI--NLP%202025-00629B?logo=ieee&logoColor=white)](https://ieeexplore.ieee.org/document/11320486)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](code/requirements.txt)
 
-Official codebase and dataset for the IEEE iSAI-NLP 2025 paper:
+Official implementation and dataset for our paper:
 
 > **[Developing Prediction Model for Estimating Moisture of Rice Paddy using Correlation Between Color Values of Rice Paddy and Moisture Content](https://ieeexplore.ieee.org/document/11320486)**  
 > *Kirati Pothidang, Ritchanon Bunseng, Waiyawat Suansawan*  
 > Department of Mathematics, Princess Chulabhorn Science High School Phetchaburi, Thailand  
-> Published in *IEEE iSAI-NLP 2025* · [Read on IEEE Xplore](https://ieeexplore.ieee.org/document/11320486)
+> Published in *IEEE iSAI-NLP 2025* · [IEEE Xplore](https://ieeexplore.ieee.org/document/11320486)
 
 ---
 
@@ -35,18 +35,18 @@ flowchart LR
 
 ## Dataset
 
-All raw paddy images were captured under controlled lighting in a 20 × 20 cm lightbox at **4896 × 3264** resolution using Thai rice paddy samples supplied by Poonsin Thai Ricemill (Suphanburi, Thailand).
+All raw paddy images were captured under controlled lighting in a 20 × 20 cm lightbox at **4896 × 3264** resolution using Thai rice paddy samples supplied by Poonsin Thai Ricemill (Suphanburi, Thailand). The core study uses the 296-sample dataset (`data/mapping_paper_296.csv` and `data/extracted_paper_296/`), while `data/mapping.csv` and `data/pictures/` also include the extended 512-sample collection (`0001.jpg`–`0512.jpg`).
 
 | File / Folder | Samples | Moisture Range | Description |
 | :--- | :---: | :---: | :--- |
-| `data/mapping.csv` | **512** | 9.6% – 30.2% (mean 21.17%) | Complete up-to-date ground-truth labels (`0001.jpg`–`0512.jpg`) |
-| `data/mapping_paper_296.csv` | **296** | 9.6% – 30.2% (mean 21.08%) | Exact 296-sample subset reported in the IEEE iSAI-NLP 2025 paper |
+| `data/mapping_paper_296.csv` | **296** | 9.6% – 30.2% (mean 21.08%) | Core 296-sample ground-truth labels (`0001.jpg`–`0296.jpg`) |
+| `data/extracted_paper_296/` | **296** | — | Extracted `All_color.csv`, `Green_color.csv`, `Brown_color.csv`, and `Correlated_FULL.xlsx` |
+| `data/mapping.csv` | **512** | 9.6% – 30.2% (mean 21.17%) | Extended ground-truth labels (`0001.jpg`–`0512.jpg`) |
 | `data/pictures/` | **512** | — | Raw RGB lightbox paddy images (`0001.jpg`–`0512.jpg`) |
-| `data/extracted_paper_296/` | **296** | — | Pre-extracted `All_color.csv`, `Green_color.csv`, `Brown_color.csv`, and `Correlated_FULL.xlsx` |
 
 ---
 
-## Results (IEEE iSAI-NLP 2025)
+## Results
 
 Evaluated on the 296-sample dataset using a 10-decile stratified 85/15 split (`N_train = 251`, `N_test = 45`, `seed = 42`):
 
@@ -78,10 +78,10 @@ rice-moisture-prediction/
 ├── README.md
 ├── .gitignore
 ├── data/
-│   ├── mapping.csv                        # Latest 512-sample moisture labels
-│   ├── mapping_paper_296.csv              # Exact 296-sample paper subset
+│   ├── mapping_paper_296.csv              # Core 296-sample moisture labels
+│   ├── mapping.csv                        # Extended 512-sample moisture labels
 │   ├── pictures/                          # Raw lightbox images (0001.jpg–0512.jpg)
-│   └── extracted_paper_296/               # Pre-extracted color tables for N=296
+│   └── extracted_paper_296/               # Extracted color tables for N=296
 │       ├── All_color.csv
 │       ├── Green_color.csv
 │       ├── Brown_color.csv
@@ -109,9 +109,9 @@ source .venv/bin/activate
 pip install -r code/requirements.txt
 ```
 
-### 2. Reproduce the IEEE Paper Results (`N = 296`)
+### 2. Train & Evaluate the Model (`N = 296`)
 ```bash
-python3 code/run_pipeline.py --mode paper
+python3 code/run_pipeline.py --mode train
 ```
 Generates all tables, plots, coefficients, operational equation, and model bundle in `outputs/paper_296/`:
 - `pearson_all_243.csv` & `selected_features_summary.csv`
@@ -124,11 +124,9 @@ Generates all tables, plots, coefficients, operational equation, and model bundl
 ```bash
 python3 code/predict.py data/pictures/0001.jpg data/pictures/0294.jpg
 ```
-*(`predict.py` automatically detects whether the loaded `.joblib` model was trained with `paper_compat` JPEG-stage compatibility or lossless `clean` masks.)*
 
-### 4. Re-extract Features & Train on the Full 512-Sample Dataset
+### 4. Extract Features & Train From Raw Pictures (`N = 296` or `N = 512`)
 ```bash
-# Lossless in-memory extraction + correlation screening + OLS on all 512 samples
 python3 code/run_pipeline.py --mode extract_and_train --dataset 512
 ```
 You can also run each stage independently:
