@@ -1,0 +1,22 @@
+{
+  "n_total": 296,
+  "n_train": 251,
+  "n_test": 45,
+  "n_features": 38,
+  "test_rmse": 2.2696643159227,
+  "test_mae": 1.7030583096879095,
+  "test_mape_pct": 9.753158857393208,
+  "test_r2": 0.8404106332267821,
+  "train_r2": 0.9014373418669146,
+  "train_adj_r2": 0.8837704503147578,
+  "anova_ss_reg": 7598.433176878095,
+  "anova_ss_res": 830.9942893556661,
+  "anova_ss_tot": 8431.12701195219,
+  "anova_df_reg": 38,
+  "anova_df_res": 212,
+  "anova_f_stat": 51.01269565779625,
+  "anova_p_value": 7.108073328538641e-87,
+  "standardized_cond_number": 1204847376451158.5,
+  "back_transform_max_diff": 0.002221060001389219,
+  "random_state": 42
+}
