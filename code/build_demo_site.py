@@ -299,7 +299,7 @@ def main() -> None:
         test_samples.append(rec)
 
     anova_df = pd.read_csv(OUTPUTS_DIR / "regression_anova_table.csv")
-    anova_rows = anova_df.where(pd.notna(anova_df), None).to_dict(orient="records")
+    anova_rows = json.loads(anova_df.to_json(orient="records"))
 
     payload = {
         "paper": {
@@ -326,8 +326,10 @@ def main() -> None:
     }
 
     out_json = DATA_OUT_DIR / "demo_data.json"
-    out_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print(f"Saved {out_json} ({out_json.stat().st_size / 1024:.1f} KB)")
+    out_json.write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+    out_js = DOCS_DIR / "demo_data.js"
+    out_js.write_text("window.DEMO_DATA = " + json.dumps(payload, allow_nan=False) + ";\n", encoding="utf-8")
+    print(f"Saved {out_json} ({out_json.stat().st_size / 1024:.1f} KB) and {out_js} ({out_js.stat().st_size / 1024:.1f} KB)")
 
 
 if __name__ == "__main__":

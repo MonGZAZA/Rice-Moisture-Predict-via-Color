@@ -1,24 +1,20 @@
-let DEMO_DATA = null;
+let DATA = null;
 let currentFilter = "diverse";
-let activeSampleId = null;
-
-function moistureCategory(m) {
-  if (m < 15) return { label: "Dry", cls: "tag-dry", key: "dry" };
-  if (m <= 22) return { label: "Medium", cls: "tag-mid", key: "mid" };
-  return { label: "Wet", cls: "tag-wet", key: "wet" };
-}
+let activeSample = null;
+let activeStageKey = "cropped";
 
 async function init() {
-  const res = await fetch("data/demo_data.json");
-  DEMO_DATA = await res.json();
+  if (window.DEMO_DATA) {
+    DATA = window.DEMO_DATA;
+  } else {
+    const res = await fetch("data/demo_data.json");
+    DATA = await res.json();
+  }
 
-  document.querySelectorAll(".filter-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentFilter = btn.dataset.filter;
-      renderSampleGrid();
-    });
+  const filterSelect = document.getElementById("filterSelect");
+  filterSelect.addEventListener("change", () => {
+    currentFilter = filterSelect.value;
+    renderSampleList();
   });
 
   document.getElementById("fileInput").addEventListener("change", (e) => {
@@ -26,16 +22,15 @@ async function init() {
     if (file) runUploadedImage(file);
   });
 
-  renderSampleGrid();
-  renderAllSamplesTable();
+  renderSampleList();
+  renderAllTable();
 
-  const defaultSample =
-    DEMO_DATA.test_samples.find((s) => s.id === 27) || DEMO_DATA.test_samples[0];
-  selectSample(defaultSample);
+  const initial = DATA.test_samples.find((s) => s.id === 27) || DATA.test_samples[0];
+  selectSample(initial);
 }
 
 function getFilteredSamples() {
-  const all = DEMO_DATA.test_samples;
+  const all = DATA.test_samples;
   if (currentFilter === "diverse") return all.filter((s) => s.featured);
   if (currentFilter === "dry") return all.filter((s) => s.actual < 15);
   if (currentFilter === "mid") return all.filter((s) => s.actual >= 15 && s.actual <= 22);
@@ -43,135 +38,152 @@ function getFilteredSamples() {
   return all;
 }
 
-function renderSampleGrid() {
-  const grid = document.getElementById("sampleGrid");
-  grid.innerHTML = "";
-  const list = getFilteredSamples();
+function renderSampleList() {
+  const listEl = document.getElementById("sampleList");
+  listEl.innerHTML = "";
+  const items = getFilteredSamples();
+  document.getElementById("sampleCountLabel").textContent = `${items.length} shown`;
 
-  list.forEach((s) => {
-    const cat = moistureCategory(s.actual);
+  items.forEach((s) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "sample-card" + (s.id === activeSampleId ? " active" : "");
+    btn.className = "sample-item" + (activeSample && activeSample.id === s.id ? " active" : "");
     btn.dataset.id = String(s.id);
-    const thumbSrc = (s.images && s.images.cropped) || "";
     btn.innerHTML = `
-      <img src="${thumbSrc}" alt="${s.filename}" loading="lazy" />
-      <div class="sc-top">
-        <span>${s.filename}</span>
-        <span class="sc-tag ${cat.cls}">${cat.label}</span>
-      </div>
-      <div class="sc-sub">GT: <b>${s.actual.toFixed(1)}%</b> → <b>${s.predicted.toFixed(1)}%</b></div>
+      <img src="${s.images.cropped}" alt="${s.filename}" loading="lazy" />
+      <div class="si-name">${s.filename}</div>
+      <div class="si-gt">GT: ${s.actual.toFixed(1)}% | Out: ${s.predicted.toFixed(1)}%</div>
     `;
     btn.addEventListener("click", () => selectSample(s));
-    grid.appendChild(btn);
+    listEl.appendChild(btn);
   });
 }
 
 function selectSample(s) {
-  activeSampleId = s.id;
+  activeSample = s;
+  activeStageKey = "cropped";
 
-  document.querySelectorAll(".sample-card").forEach((el) => {
+  document.querySelectorAll(".sample-item").forEach((el) => {
     el.classList.toggle("active", Number(el.dataset.id) === s.id);
   });
-  document.querySelectorAll("#allSamplesBody tr").forEach((tr) => {
+  document.querySelectorAll("#allTableBody tr").forEach((tr) => {
     tr.classList.toggle("active-row", Number(tr.dataset.id) === s.id);
   });
 
-  const mainImg = document.getElementById("mainImg");
-  mainImg.src = (s.images && s.images.cropped) || "";
-  const greenPct = s.green_segment_pct != null ? `${s.green_segment_pct}% Green` : "";
-  const brownPct = s.brown_segment_pct != null ? `${s.brown_segment_pct}% Brown` : "";
-  document.getElementById("previewCaption").textContent =
-    `${s.filename}` + (greenPct ? ` (${greenPct}, ${brownPct})` : "");
+  document.getElementById("activeFilename").textContent = s.filename;
+  renderImagePane(s);
 
+  document.getElementById("resFile").textContent = s.filename;
   const hasGT = s.actual != null;
-  document.getElementById("outActual").textContent = hasGT ? `${s.actual.toFixed(2)}%` : "N/A";
-  document.getElementById("outPred").textContent = `${s.predicted.toFixed(2)}%`;
+  document.getElementById("resActual").textContent = hasGT ? `${s.actual.toFixed(2)} %` : "N/A";
+  document.getElementById("resPred").textContent = `${s.predicted.toFixed(2)} %`;
 
   if (hasGT) {
-    const diff = s.predicted - s.actual;
-    const sign = diff >= 0 ? "+" : "";
-    document.getElementById("outDiff").textContent = `${sign}${diff.toFixed(2)}% (|${Math.abs(diff).toFixed(2)}%|)`;
-    document.getElementById("outPctErr").textContent = `${s.pct_error.toFixed(2)}%`;
+    const signed = s.predicted - s.actual;
+    const sign = signed >= 0 ? "+" : "";
+    document.getElementById("resSignedErr").textContent = `${sign}${signed.toFixed(2)} %`;
+    document.getElementById("resAbsErr").textContent = `${s.abs_error.toFixed(2)} %`;
+    document.getElementById("resRelErr").textContent = `${s.pct_error.toFixed(2)} %`;
   } else {
-    document.getElementById("outDiff").textContent = "—";
-    document.getElementById("outPctErr").textContent = "—";
+    document.getElementById("resSignedErr").textContent = "—";
+    document.getElementById("resAbsErr").textContent = "—";
+    document.getElementById("resRelErr").textContent = "—";
   }
 
-  // Visual bars (scaled 0 to 32%)
-  const actualW = hasGT ? Math.min(100, Math.max(0, (s.actual / 32) * 100)) : 0;
-  const predW = Math.min(100, Math.max(0, (s.predicted / 32) * 100));
-  document.getElementById("barActual").style.width = `${actualW}%`;
-  document.getElementById("barPred").style.width = `${predW}%`;
-  document.getElementById("barActualNum").textContent = hasGT ? `${s.actual.toFixed(2)}%` : "N/A";
-  document.getElementById("barPredNum").textContent = `${s.predicted.toFixed(2)}%`;
+  document.getElementById("resMasks").textContent =
+    s.green_segment_pct != null
+      ? `Green ${s.green_segment_pct}% / Brown ${s.brown_segment_pct}%`
+      : "—";
 
-  // Stage images if available
-  const stagesSection = document.getElementById("stagesSection");
-  if (s.images && s.images.original) {
-    stagesSection.style.display = "grid";
-    document.getElementById("stOrig").src = s.images.original;
-    document.getElementById("stCrop").src = s.images.cropped;
-    document.getElementById("stDen").src = s.images.denoised;
-    document.getElementById("stGrn").src = s.images.green;
-    document.getElementById("stBrn").src = s.images.brown;
-  } else {
-    stagesSection.style.display = "none";
+  renderFeaturesTable(s);
+}
+
+function renderImagePane(s) {
+  const img = document.getElementById("previewImg");
+  const btnWrap = document.getElementById("viewButtons");
+  btnWrap.innerHTML = "";
+
+  const stageDefs = [
+    ["cropped", "Cropped"],
+    ["original", "Original"],
+    ["denoised", "Denoised"],
+    ["green", "Green Mask"],
+    ["brown", "Brown Mask"],
+  ];
+
+  const available = stageDefs.filter(([k]) => Boolean(s.images && s.images[k]));
+  if (!s.images || !s.images[activeStageKey]) {
+    activeStageKey = available.length ? available[0][0] : "cropped";
   }
 
-  // 38 features table
-  const tbody = document.getElementById("featBody");
+  img.src = (s.images && s.images[activeStageKey]) || "";
+
+  if (available.length > 1) {
+    available.forEach(([key, label]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "view-btn" + (key === activeStageKey ? " active" : "");
+      b.textContent = label;
+      b.addEventListener("click", () => {
+        activeStageKey = key;
+        renderImagePane(s);
+      });
+      btnWrap.appendChild(b);
+    });
+  }
+}
+
+function renderFeaturesTable(s) {
+  const tbody = document.getElementById("featTableBody");
   tbody.innerHTML = "";
-  const feats = DEMO_DATA.model.features;
-  feats.forEach((f, i) => {
-    const rawVal = s.raw_features[i];
-    const zVal = s.z_scores[i];
-    const cVal = s.z_contributions[i];
+
+  DATA.model.features.forEach((f, i) => {
+    const raw = s.raw_features[i];
+    const z = s.z_scores[i];
+    const contrib = s.z_contributions[i];
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${f.segment}</td>
       <td><code>${f.name}</code></td>
-      <td>${Number(rawVal).toFixed(4)}</td>
-      <td>${zVal >= 0 ? "+" : ""}${Number(zVal).toFixed(3)}</td>
-      <td>${f.beta_std >= 0 ? "+" : ""}${Number(f.beta_std).toFixed(3)}</td>
-      <td><b>${cVal >= 0 ? "+" : ""}${Number(cVal).toFixed(3)}%</b></td>
+      <td>${Number(raw).toFixed(4)}</td>
+      <td>${Number(f.train_mean).toFixed(4)}</td>
+      <td>${Number(f.train_std).toFixed(4)}</td>
+      <td>${z >= 0 ? "+" : ""}${Number(z).toFixed(3)}</td>
+      <td>${f.beta_std >= 0 ? "+" : ""}${Number(f.beta_std).toFixed(4)}</td>
+      <td>${contrib >= 0 ? "+" : ""}${Number(contrib).toFixed(4)}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-function renderAllSamplesTable() {
-  const tbody = document.getElementById("allSamplesBody");
+function renderAllTable() {
+  const tbody = document.getElementById("allTableBody");
   tbody.innerHTML = "";
-  DEMO_DATA.test_samples.forEach((s) => {
-    const cat = moistureCategory(s.actual);
+
+  DATA.test_samples.forEach((s) => {
     const tr = document.createElement("tr");
     tr.dataset.id = String(s.id);
     tr.innerHTML = `
-      <td><b>${s.filename}</b></td>
-      <td><span class="sc-tag ${cat.cls}">${cat.label}</span></td>
-      <td>${s.green_segment_pct ?? "—"}% / ${s.brown_segment_pct ?? "—"}%</td>
-      <td><b>${s.actual.toFixed(2)}%</b></td>
-      <td><b>${s.predicted.toFixed(2)}%</b></td>
-      <td>${s.abs_error.toFixed(2)}%</td>
+      <td>${s.filename}</td>
+      <td>${s.actual.toFixed(2)}</td>
+      <td>${s.predicted.toFixed(2)}</td>
+      <td>${s.abs_error.toFixed(2)}</td>
       <td>${s.pct_error.toFixed(2)}%</td>
+      <td>${s.green_segment_pct}% / ${s.brown_segment_pct}%</td>
     `;
-    tr.addEventListener("click", () => {
-      selectSample(s);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
+    tr.addEventListener("click", () => selectSample(s));
     tbody.appendChild(tr);
   });
 }
 
+/* Run exact 38-feature HSV + CIELab + OLS model in-browser for uploaded images */
 function runUploadedImage(file) {
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      const sample = evaluateImageInBrowser(img, file.name);
+      const sample = analyzeUploadedImage(img, file.name);
       selectSample(sample);
     };
     img.src = ev.target.result;
@@ -179,16 +191,17 @@ function runUploadedImage(file) {
   reader.readAsDataURL(file);
 }
 
-function evaluateImageInBrowser(img, filename) {
+function analyzeUploadedImage(img, filename) {
   const canvas = document.getElementById("workCanvas");
   const ctx = canvas.getContext("2d");
+
+  const origUrl = scaleToDataUrl(img, 0, 0, img.width, img.height, 480);
 
   let sx = 0, sy = 0, sw = img.width, sh = img.height;
   if (img.width >= 4300 && img.height >= 3164) {
     sx = 586; sy = 0; sw = 4252 - 586; sh = 3164;
   }
-  const maxW = 420;
-  const scale = Math.min(1, maxW / sw);
+  const scale = Math.min(1, 420 / sw);
   const w = Math.max(1, Math.round(sw * scale));
   const h = Math.max(1, Math.round(sh * scale));
   canvas.width = w;
@@ -196,36 +209,254 @@ function evaluateImageInBrowser(img, filename) {
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
   const croppedUrl = canvas.toDataURL("image/jpeg", 0.85);
 
-  // Use nearest test sample by mean Green/RGB chromaticity for instant browser fallback
-  const imgData = ctx.getImageData(0, 0, w, h).data;
-  let rSum = 0, gSum = 0, bSum = 0, cnt = 0;
-  for (let i = 0; i < imgData.length; i += 4) {
-    rSum += imgData[i];
-    gSum += imgData[i + 1];
-    bSum += imgData[i + 2];
-    cnt++;
-  }
-  const gNorm = gSum / (rSum + gSum + bSum + 1e-6);
+  const px = ctx.getImageData(0, 0, w, h).data;
+  const denImg = ctx.createImageData(w, h);
+  const grnImg = ctx.createImageData(w, h);
+  const brnImg = ctx.createImageData(w, h);
 
-  // Match against the 38-feature table g_mean index
-  const gMeanIdx = DEMO_DATA.model.features.findIndex((f) => f.name === "g_mean");
-  let best = DEMO_DATA.test_samples[0];
-  let bestDist = Infinity;
-  DEMO_DATA.test_samples.forEach((s) => {
-    const d = Math.abs((s.raw_features[gMeanIdx] || 0.34) - gNorm);
-    if (d < bestDist) {
-      bestDist = d;
-      best = s;
+  let validCount = 0, grnCount = 0, brnCount = 0;
+  const allPix = { R: [], G: [], B: [], H: [], S: [], V: [], L: [], a: [], b: [] };
+  const grnPix = { R: [], G: [], B: [], H: [], S: [], V: [], L: [], a: [], b: [] };
+
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i], g = px[i + 1], b = px[i + 2];
+    const [H, S, V] = rgbToOpenCvHsv(r, g, b);
+    const notBlack = !(r === 0 && g === 0 && b === 0);
+    const notBlue = H < 100 || H > 140;
+    const isValid = notBlack && notBlue;
+
+    denImg.data[i + 3] = 255;
+    grnImg.data[i + 3] = 255;
+    brnImg.data[i + 3] = 255;
+
+    if (isValid) {
+      validCount++;
+      denImg.data[i] = r; denImg.data[i + 1] = g; denImg.data[i + 2] = b;
+      const [L, a, bb] = rgbToOpenCvLab(r, g, b);
+      const hDeg = H * 2.0;
+
+      allPix.R.push(r); allPix.G.push(g); allPix.B.push(b);
+      allPix.H.push(hDeg); allPix.S.push(S); allPix.V.push(V);
+      allPix.L.push(L); allPix.a.push(a); allPix.b.push(bb);
+
+      // config.py: GREEN_HSV_LOWER = (25, 35, 35), GREEN_HSV_UPPER = (85, 255, 255)
+      if (H >= 25 && H <= 85 && S >= 35 && V >= 35) {
+        grnCount++;
+        grnImg.data[i] = r; grnImg.data[i + 1] = g; grnImg.data[i + 2] = b;
+        grnPix.R.push(r); grnPix.G.push(g); grnPix.B.push(b);
+        grnPix.H.push(hDeg); grnPix.S.push(S); grnPix.V.push(V);
+        grnPix.L.push(L); grnPix.a.push(a); grnPix.b.push(bb);
+      } else {
+        brnCount++;
+        brnImg.data[i] = r; brnImg.data[i + 1] = g; brnImg.data[i + 2] = b;
+      }
     }
+  }
+
+  ctx.putImageData(denImg, 0, 0);
+  const denoisedUrl = canvas.toDataURL("image/jpeg", 0.85);
+  ctx.putImageData(grnImg, 0, 0);
+  const greenUrl = canvas.toDataURL("image/jpeg", 0.85);
+  ctx.putImageData(brnImg, 0, 0);
+  const brownUrl = canvas.toDataURL("image/jpeg", 0.85);
+
+  const allStats = extractPaperFeatures(allPix);
+  const grnStats = extractPaperFeatures(grnPix.R.length > 10 ? grnPix : allPix);
+
+  const rawFeatures = [];
+  const zScores = [];
+  const contribs = [];
+  let yPred = DATA.model.intercept_std;
+
+  DATA.model.features.forEach((f) => {
+    const src = f.segment === "All" ? allStats : grnStats;
+    const val = src[f.name] ?? f.train_mean;
+    const z = (val - f.train_mean) / f.train_std;
+    const c = z * f.beta_std;
+    rawFeatures.push(val);
+    zScores.push(z);
+    contribs.push(c);
+    yPred += c;
   });
 
+  const denom = Math.max(1, validCount);
   return {
-    ...best,
     id: -1,
-    filename: `${filename} (Uploaded)`,
+    filename: `${filename} (uploaded)`,
     actual: null,
-    images: { cropped: croppedUrl },
+    predicted: yPred,
+    abs_error: null,
+    pct_error: null,
+    featured: false,
+    green_segment_pct: Number(((grnCount / denom) * 100).toFixed(2)),
+    brown_segment_pct: Number(((brnCount / denom) * 100).toFixed(2)),
+    images: {
+      cropped: croppedUrl,
+      original: origUrl,
+      denoised: denoisedUrl,
+      green: greenUrl,
+      brown: brownUrl,
+    },
+    raw_features: rawFeatures,
+    z_scores: zScores,
+    z_contributions: contribs,
   };
+}
+
+function scaleToDataUrl(img, sx, sy, sw, sh, maxW) {
+  const c = document.createElement("canvas");
+  const s = Math.min(1, maxW / sw);
+  c.width = Math.max(1, Math.round(sw * s));
+  c.height = Math.max(1, Math.round(sh * s));
+  c.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.85);
+}
+
+function rgbToOpenCvHsv(r, g, b) {
+  const rf = r / 255, gf = g / 255, bf = b / 255;
+  const max = Math.max(rf, gf, bf), min = Math.min(rf, gf, bf);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === rf) h = 60 * (((gf - bf) / d) % 6);
+    else if (max === gf) h = 60 * ((bf - rf) / d + 2);
+    else h = 60 * ((rf - gf) / d + 4);
+  }
+  if (h < 0) h += 360;
+  return [Math.round(h / 2), Math.round(max === 0 ? 0 : (d / max) * 255), Math.round(max * 255)];
+}
+
+function rgbToOpenCvLab(r, g, b) {
+  const lin = (c) => {
+    const v = c / 255;
+    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const R = lin(r), G = lin(g), B = lin(b);
+  const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
+  const Y = 0.2126729 * R + 0.7151522 * G + 0.0721750 * B;
+  const Z = (0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883;
+  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const fx = f(X), fy = f(Y), fz = f(Z);
+  return [((116 * fy - 16) * 255) / 100, 500 * (fx - fy) + 128, 200 * (fy - fz) + 128];
+}
+
+function extractPaperFeatures(pix) {
+  const n = pix.R.length;
+  if (!n) return {};
+  const stats = (arr) => {
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += arr[i];
+    const m = sum / n;
+    let sq = 0, m3 = 0, m4 = 0;
+    for (let i = 0; i < n; i++) {
+      const d = arr[i] - m;
+      sq += d * d;
+      m3 += d * d * d;
+      m4 += d * d * d * d;
+    }
+    const sd = n > 1 ? Math.sqrt(sq / (n - 1)) : 0;
+    const sigma = Math.sqrt(sq / n);
+    const sk = sigma > 1e-9 ? m3 / n / Math.pow(sigma, 3) : 0;
+    const ku = sigma > 1e-9 ? m4 / n / Math.pow(sigma, 4) : 0;
+    return [m, sd, sk, ku];
+  };
+  const histBins = (arr, k, rangeMax) => {
+    const h = new Array(k).fill(0);
+    for (let i = 0; i < n; i++) {
+      let b = Math.floor((arr[i] / rangeMax) * k);
+      if (b >= k) b = k - 1;
+      if (b < 0) b = 0;
+      h[b]++;
+    }
+    return h.map((c) => c / n);
+  };
+  const entropy = (arr, rangeMax) => {
+    const h = new Array(256).fill(0);
+    for (let i = 0; i < n; i++) {
+      let b = Math.floor((arr[i] / rangeMax) * 256);
+      if (b >= 256) b = 255;
+      if (b < 0) b = 0;
+      h[b]++;
+    }
+    let e = 0;
+    for (let i = 0; i < 256; i++) {
+      if (h[i] > 0) {
+        const p = h[i] / n;
+        e -= p * Math.log2(p);
+      }
+    }
+    return e;
+  };
+
+  const f = {};
+  for (const [name, arr] of [["R", pix.R], ["G", pix.G], ["B", pix.B]]) {
+    const [m, sd, sk] = stats(arr);
+    f[`${name}_mean`] = m;
+    f[`${name}_std`] = sd;
+    f[`${name}_skew`] = sk;
+    f[`Entropy_${name}`] = entropy(arr, 256);
+  }
+  for (const [name, arr, rng, k, erng] of [
+    ["H", pix.H, 360, 8, 360],
+    ["S", pix.S, 255, 8, 256],
+    ["V", pix.V, 255, 5, 256],
+  ]) {
+    const [, sd, sk, ku] = stats(arr);
+    f[`${name}_std`] = sd;
+    f[`${name}_skew`] = sk;
+    f[`${name}_kurt`] = ku;
+    histBins(arr, k, rng).forEach((v, idx) => {
+      f[`${name}_bin${idx}`] = v;
+    });
+    f[`Entropy_${name}`] = entropy(arr, erng);
+  }
+  for (const [name, arr] of [["L", pix.L], ["a", pix.a], ["b", pix.b]]) {
+    const [m, sd] = stats(arr);
+    f[`${name}_mean`] = m;
+    f[`${name}_std`] = sd;
+  }
+
+  let gFracSum = 0, rbSum = 0, gbSum = 0;
+  const exgArr = new Float64Array(n);
+  const exrArr = new Float64Array(n);
+  const tgiArr = new Float64Array(n);
+  const exbArr = new Float64Array(n);
+  const rgArr = new Float64Array(n);
+  const ybArr = new Float64Array(n);
+
+  for (let i = 0; i < n; i++) {
+    const R = pix.R[i], G = pix.G[i], B = pix.B[i];
+    const s = R + G + B;
+    gFracSum += s > 0 ? G / s : 0;
+    rbSum += R / (B !== 0 ? B : 1);
+    gbSum += G / (B !== 0 ? B : 1);
+    exgArr[i] = 2 * G - R - B;
+    exrArr[i] = 1.4 * R - G;
+    tgiArr[i] = -0.5 * (190 * (R - G) - 120 * (R - B));
+    exbArr[i] = 2 * B - R - G;
+    rgArr[i] = R - G;
+    ybArr[i] = 0.5 * (R + G) - B;
+  }
+
+  f.g_mean = gFracSum / n;
+  f.R_B_ratio_mean = rbSum / n;
+  f.G_B_ratio_mean = gbSum / n;
+
+  const [exgM, exgS] = stats(exgArr);
+  const [, exrS] = stats(exrArr);
+  const [tgiM, tgiS] = stats(tgiArr);
+  const [exbM] = stats(exbArr);
+  f.ExG_mean = exgM;
+  f.ExG_std = exgS;
+  f.ExR_std = exrS;
+  f.TGI_mean = tgiM;
+  f.TGI_std = tgiS;
+  f.ExB_mean = exbM;
+
+  const [rgM, rgS] = stats(rgArr);
+  const [ybM, ybS] = stats(ybArr);
+  f.Colorfulness_index = Math.sqrt(rgS * rgS + ybS * ybS) + 0.3 * Math.sqrt(rgM * rgM + ybM * ybM);
+  return f;
 }
 
 document.addEventListener("DOMContentLoaded", init);

@@ -66,23 +66,23 @@
         "df": 38,
         "MS": 199.9588,
         "F": 51.013,
-        "p-value": 7.108073328538641e-87
+        "p-value": 7.108073329e-87
       },
       {
         "Source": "Residual",
         "SS": 830.994,
         "df": 212,
         "MS": 3.9198,
-        "F": NaN,
-        "p-value": NaN
+        "F": null,
+        "p-value": null
       },
       {
         "Source": "Total",
         "SS": 8431.127,
         "df": 250,
-        "MS": NaN,
-        "F": NaN,
-        "p-value": NaN
+        "MS": null,
+        "F": null,
+        "p-value": null
       }
     ],
     "features": [

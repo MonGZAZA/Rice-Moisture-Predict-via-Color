@@ -3,150 +3,149 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rice Paddy Moisture Model Tester</title>
+  <title>Rice Moisture Prediction — Test Page</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Rice Paddy Moisture Model Tester</h1>
-    <p class="sub">Pick any test sample below (spanning 9.9% dry to 28.8% wet paddy) to run it through the model and compare the predicted moisture vs. ground truth.</p>
+  <header class="topbar">
+    <span class="site-title">Rice Moisture Prediction (38-Feature OLS)</span>
+    <span class="topbar-links">
+      <a href="https://github.com/MonGZAZA/Rice-Moisture-Predict-via-Color" target="_blank" rel="noopener">GitHub</a>
+      ·
+      <a href="https://ieeexplore.ieee.org/document/11320486" target="_blank" rel="noopener">IEEE iSAI-NLP 2025</a>
+    </span>
+  </header>
 
-    <!-- 1. Diverse Sample Picker -->
-    <div class="panel">
-      <div class="picker-bar">
-        <div class="filter-group">
-          <span>Filter:</span>
-          <button type="button" class="filter-btn active" data-filter="diverse">12 Diverse Samples (9.9% – 28.8%)</button>
-          <button type="button" class="filter-btn" data-filter="all">All 45 Test Samples</button>
-          <button type="button" class="filter-btn" data-filter="dry">Dry (&lt; 15%)</button>
-          <button type="button" class="filter-btn" data-filter="mid">Medium (15% – 22%)</button>
-          <button type="button" class="filter-btn" data-filter="wet">High Moisture (&gt; 22%)</button>
+  <div class="layout">
+    <!-- Left Column: Sample Images -->
+    <aside class="left-col">
+      <div class="col-header">
+        <strong>Samples</strong>
+        <span id="sampleCountLabel" class="muted"></span>
+      </div>
+
+      <div class="controls">
+        <label for="filterSelect">Show:</label>
+        <select id="filterSelect">
+          <option value="diverse">Diverse Samples (12, 9.9%–28.8%)</option>
+          <option value="all">All Test Samples (45)</option>
+          <option value="dry">Dry (&lt; 15%)</option>
+          <option value="mid">Medium (15%–22%)</option>
+          <option value="wet">Wet (&gt; 22%)</option>
+        </select>
+      </div>
+
+      <div class="upload-row">
+        <label for="fileInput">Or upload image:</label>
+        <input type="file" id="fileInput" accept="image/*" />
+      </div>
+
+      <div id="sampleList" class="sample-list"></div>
+    </aside>
+
+    <!-- Right Column: Model Analysis & Result Comparison -->
+    <main class="right-col">
+      <div class="col-header">
+        <strong>Analysis Result</strong>
+        <span id="activeFilename" class="muted">Select a sample on the left</span>
+      </div>
+
+      <div class="result-top">
+        <div class="image-pane">
+          <img id="previewImg" alt="Selected rice paddy sample" />
+          <div id="viewButtons" class="view-buttons"></div>
         </div>
-        <div class="upload-group">
-          <label for="fileInput">Or upload image:</label>
-          <input type="file" id="fileInput" accept="image/*" />
+
+        <div class="comparison-pane">
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th colspan="2">Model Output vs. Ground Truth</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Sample File</td>
+                <td id="resFile">—</td>
+              </tr>
+              <tr>
+                <td>Ground Truth Moisture</td>
+                <td id="resActual">—</td>
+              </tr>
+              <tr class="row-output">
+                <td>Model Predicted Output</td>
+                <td id="resPred">—</td>
+              </tr>
+              <tr>
+                <td>Error (Predicted − Actual)</td>
+                <td id="resSignedErr">—</td>
+              </tr>
+              <tr>
+                <td>Absolute Error</td>
+                <td id="resAbsErr">—</td>
+              </tr>
+              <tr>
+                <td>Relative Error</td>
+                <td id="resRelErr">—</td>
+              </tr>
+              <tr>
+                <td>HSV Mask (Green / Brown)</td>
+                <td id="resMasks">—</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="model-summary">
+            Held-out test set (N = 45): RMSE = 2.27%, MAE = 1.70%, MAPE = 9.75%, R² = 0.840
+          </div>
         </div>
       </div>
 
-      <div id="sampleGrid" class="sample-grid"></div>
-    </div>
-
-    <!-- 2. Selected Sample & Model Output vs Ground Truth -->
-    <div class="panel result-panel">
-      <div class="selected-preview">
-        <img id="mainImg" alt="Selected rice paddy sample" />
-        <div class="preview-caption" id="previewCaption">—</div>
-      </div>
-
-      <div class="comparison-side">
-        <h2>Model Output vs. Ground Truth</h2>
-        <div class="cards-row">
-          <div class="metric-box">
-            <div class="m-label">Ground Truth (Actual)</div>
-            <div class="m-value" id="outActual">—</div>
-          </div>
-          <div class="metric-box highlight">
-            <div class="m-label">Model Output (Predicted)</div>
-            <div class="m-value" id="outPred">—</div>
-          </div>
-          <div class="metric-box">
-            <div class="m-label">Difference (Error)</div>
-            <div class="m-value" id="outDiff">—</div>
-          </div>
-          <div class="metric-box">
-            <div class="m-label">% Error</div>
-            <div class="m-value" id="outPctErr">—</div>
-          </div>
+      <details class="fold">
+        <summary>38 Extracted Features &amp; Linear Regression Terms (ŷ = 21.1452 + Σ wᵢ·zᵢ)</summary>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Seg</th>
+                <th>Feature</th>
+                <th>Raw Value</th>
+                <th>Train Mean</th>
+                <th>Train Std</th>
+                <th>Z-Score</th>
+                <th>Weight (wᵢ)</th>
+                <th>wᵢ·zᵢ</th>
+              </tr>
+            </thead>
+            <tbody id="featTableBody"></tbody>
+          </table>
         </div>
+      </details>
 
-        <!-- Simple Visual Comparison Bar (0 to 32% moisture) -->
-        <div class="bars-box">
-          <div class="bar-row">
-            <span class="bar-name">Ground Truth</span>
-            <div class="bar-track">
-              <div id="barActual" class="bar-fill actual-fill"></div>
-            </div>
-            <span class="bar-num" id="barActualNum">—</span>
-          </div>
-          <div class="bar-row">
-            <span class="bar-name">Model Output</span>
-            <div class="bar-track">
-              <div id="barPred" class="bar-fill pred-fill"></div>
-            </div>
-            <span class="bar-num" id="barPredNum">—</span>
-          </div>
+      <details class="fold">
+        <summary>All 45 Test Samples Summary Table</summary>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sample</th>
+                <th>Ground Truth (%)</th>
+                <th>Predicted (%)</th>
+                <th>Abs Error (%)</th>
+                <th>% Error</th>
+                <th>Green / Brown</th>
+              </tr>
+            </thead>
+            <tbody id="allTableBody"></tbody>
+          </table>
         </div>
-
-        <!-- Optional toggle for pipeline images & 38 feature math -->
-        <details class="details-box" id="pipelineDetails">
-          <summary>Show preprocessing stages &amp; 38-feature model calculation</summary>
-          <div id="stagesSection" class="stages-wrap">
-            <div class="stage-card">
-              <span>1. Original + Crop Box</span>
-              <img id="stOrig" alt="Original" />
-            </div>
-            <div class="stage-card">
-              <span>2. Cropped ROI</span>
-              <img id="stCrop" alt="Cropped" />
-            </div>
-            <div class="stage-card">
-              <span>3. Denoised</span>
-              <img id="stDen" alt="Denoised" />
-            </div>
-            <div class="stage-card">
-              <span>4. Green Mask</span>
-              <img id="stGrn" alt="Green" />
-            </div>
-            <div class="stage-card">
-              <span>5. Brown Mask</span>
-              <img id="stBrn" alt="Brown" />
-            </div>
-          </div>
-
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Segment</th>
-                  <th>Feature</th>
-                  <th>Value</th>
-                  <th>Z-Score</th>
-                  <th>Weight</th>
-                  <th>Contribution</th>
-                </tr>
-              </thead>
-              <tbody id="featBody"></tbody>
-            </table>
-          </div>
-        </details>
-      </div>
-    </div>
-
-    <!-- 3. All 45 Test Samples Summary Comparison Table -->
-    <div class="panel">
-      <h2>All 45 Held-Out Test Samples — Actual vs. Model Output (RMSE: 2.27%, MAE: 1.70%, R²: 0.84)</h2>
-      <p class="sub-note">Click any row to load that sample above.</p>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Sample</th>
-              <th>Moisture Level</th>
-              <th>Green / Brown Pixels</th>
-              <th>Ground Truth (%)</th>
-              <th>Model Output (%)</th>
-              <th>Abs Error (%)</th>
-              <th>% Error</th>
-            </tr>
-          </thead>
-          <tbody id="allSamplesBody"></tbody>
-        </table>
-      </div>
-    </div>
+      </details>
+    </main>
   </div>
 
   <canvas id="workCanvas" style="display:none;"></canvas>
+  <script src="demo_data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
