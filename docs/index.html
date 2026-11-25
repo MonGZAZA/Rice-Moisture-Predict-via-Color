@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rice Paddy Moisture Prediction — Interactive Pipeline Demo (IEEE iSAI-NLP 2025)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="header-text">
+        <div class="badge-row">
+          <a href="https://ieeexplore.ieee.org/document/11320486" target="_blank" rel="noopener" class="badge badge-ieee">
+            IEEE iSAI-NLP 2025 · Document 11320486
+          </a>
+          <span class="badge badge-cam">FUJIFILM X100T · 4896×3264 · 20×20 cm Lightbox</span>
+        </div>
+        <h1>Developing Prediction Model for Estimating Moisture of Rice Paddy using Correlation Between Color Values of Rice Paddy and Moisture Content</h1>
+        <p class="authors">
+          <strong>Kirati Pothidang</strong>, <strong>Ritchanon Bunseng</strong>, <strong>Waiyawat Suansawan</strong>
+          <span class="affil">— Department of Mathematics, Princess Chulabhorn Science High School Phetchaburi, Thailand</span>
+        </p>
+      </div>
+      <div class="header-actions">
+        <a href="https://ieeexplore.ieee.org/document/11320486" target="_blank" rel="noopener" class="btn btn-primary">
+          Read on IEEE Xplore ↗
+        </a>
+        <a href="https://github.com/MonGZAZA/Rice-Moisture-Predict-via-Color" target="_blank" rel="noopener" class="btn btn-outline">
+          GitHub Repository ↗
+        </a>
+      </div>
+    </div>
+
+    <div class="metrics-ribbon">
+      <div class="container ribbon-grid">
+        <div class="ribbon-item">
+          <span class="ribbon-label">Dataset Split (10-Decile Stratified)</span>
+          <span class="ribbon-val">N = 296 <small>(251 Train / 45 Test)</small></span>
+        </div>
+        <div class="ribbon-item">
+          <span class="ribbon-label">Feature Screening (|r| ≥ 0.80, p &lt; 0.01)</span>
+          <span class="ribbon-val">243 → 38 <small>(36 Green + 2 Full)</small></span>
+        </div>
+        <div class="ribbon-item">
+          <span class="ribbon-label">Held-Out Test RMSE</span>
+          <span class="ribbon-val highlight-green">2.270%</span>
+        </div>
+        <div class="ribbon-item">
+          <span class="ribbon-label">Held-Out Test MAE</span>
+          <span class="ribbon-val highlight-green">1.703%</span>
+        </div>
+        <div class="ribbon-item">
+          <span class="ribbon-label">Held-Out Test MAPE</span>
+          <span class="ribbon-val highlight-green">9.75%</span>
+        </div>
+        <div class="ribbon-item">
+          <span class="ribbon-label">Held-Out Test R²</span>
+          <span class="ribbon-val highlight-green">0.840</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-layout">
+    <!-- Sample Selector Panel -->
+    <section class="card sample-picker-card">
+      <div class="section-header">
+        <div>
+          <h2>1. Select a Rice Paddy Sample (with Ground Truth)</h2>
+          <p class="section-sub">
+            Pick one of the 12 featured held-out test samples (with full pre-rendered visual stages from 9.9% to 28.8% moisture), choose any of the 45 held-out test samples from the dropdown, or upload a custom lightbox image.
+          </p>
+        </div>
+        <div class="picker-controls">
+          <label class="select-wrap">
+            <span>All 45 Test Samples:</span>
+            <select id="allSamplesSelect" aria-label="Select any of the 45 held-out test samples"></select>
+          </label>
+          <label class="btn btn-upload" for="customImageInput">
+            Upload Custom Image
+            <input type="file" id="customImageInput" accept="image/*" hidden />
+          </label>
+          <button type="button" id="runAnimationBtn" class="btn btn-accent">
+            ▶ Step Through Pipeline
+          </button>
+        </div>
+      </div>
+
+      <div id="featuredGrid" class="featured-grid" role="listbox" aria-label="Featured rice paddy test samples"></div>
+    </section>
+
+    <!-- Active Sample Summary Banner -->
+    <section class="active-banner card" id="activeBanner">
+      <div class="banner-left">
+        <span class="sample-pill" id="activeSampleBadge">Sample #0027</span>
+        <div>
+          <h3 id="activeSampleTitle">0027.jpg — Held-Out Test Sample</h3>
+          <p id="activeSampleMeta">Captured with FUJIFILM X100T · 4896×3264 px · ISO 200 · f/11</p>
+        </div>
+      </div>
+      <div class="banner-kpis">
+        <div class="kpi-box kpi-actual">
+          <span class="kpi-label">Ground Truth Moisture</span>
+          <span class="kpi-num" id="kpiActual">--%</span>
+        </div>
+        <div class="kpi-box kpi-pred">
+          <span class="kpi-label">Model Predicted Moisture</span>
+          <span class="kpi-num" id="kpiPred">--%</span>
+        </div>
+        <div class="kpi-box kpi-err">
+          <span class="kpi-label">Absolute / Relative Error</span>
+          <span class="kpi-num" id="kpiError">--%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pipeline Stepper Navigation -->
+    <nav class="pipeline-stepper" id="pipelineStepper" aria-label="Pipeline stages">
+      <button type="button" class="step-tab active" data-step="all">
+        <span class="step-num">All</span>
+        <span class="step-title">Full Pipeline View</span>
+      </button>
+      <button type="button" class="step-tab" data-step="1">
+        <span class="step-num">Stage 1</span>
+        <span class="step-title">Crop &amp; ROI</span>
+      </button>
+      <button type="button" class="step-tab" data-step="2">
+        <span class="step-num">Stage 2</span>
+        <span class="step-title">Hue Band-Stop Denoise</span>
+      </button>
+      <button type="button" class="step-tab" data-step="3">
+        <span class="step-num">Stage 3</span>
+        <span class="step-title">Green / Brown Split</span>
+      </button>
+      <button type="button" class="step-tab" data-step="4">
+        <span class="step-num">Stage 4</span>
+        <span class="step-title">38 Color Features</span>
+      </button>
+      <button type="button" class="step-tab" data-step="5">
+        <span class="step-num">Stage 5</span>
+        <span class="step-title">OLS Model &amp; Fig. 6</span>
+      </button>
+    </nav>
+
+    <!-- Visual Stages 1 to 3 -->
+    <section class="card pipeline-stage" id="stage1Card" data-stage="1">
+      <div class="stage-head">
+        <span class="stage-tag">Stage 1 · Section IV.A &amp; IV.B</span>
+        <h3>Data Acquisition &amp; Border Cropping</h3>
+        <p>
+          Each high-resolution image (<code>4896 × 3264</code>) is captured inside a controlled <code>20 × 20 cm</code> lightbox and cropped to bounding box <code>(586, 0, 4252, 3164)</code> (<code>3666 × 3164</code> px) to remove lightbox walls and retain only the rice paddy region.
+        </p>
+      </div>
+      <div class="visual-pair" id="stage1Visuals">
+        <figure class="img-panel">
+          <div class="img-frame">
+            <img id="imgOriginal" alt="Original lightbox image with crop boundary" loading="lazy" />
+          </div>
+          <figcaption>
+            <strong>(a) Original Lightbox Image (4896×3264)</strong>
+            <span>Green rectangle indicates crop ROI <code>(586, 0, 4252, 3164)</code></span>
+          </figcaption>
+        </figure>
+        <figure class="img-panel">
+          <div class="img-frame">
+            <img id="imgCropped" alt="Cropped rice paddy region" loading="lazy" />
+          </div>
+          <figcaption>
+            <strong>(b) Cropped Paddy Region (3666×3164)</strong>
+            <span>Borders removed prior to HSV conversion</span>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="no-visual-notice" id="noVisualNotice1" hidden></div>
+    </section>
+
+    <section class="card pipeline-stage" id="stage2Card" data-stage="2">
+      <div class="stage-head">
+        <span class="stage-tag">Stage 2 · Section IV.B (Fig. 3)</span>
+        <h3>HSV Hue-Only Band-Stop Artifact Removal</h3>
+        <p>
+          To suppress non-paddy elements or noise (such as blue/cyan color patches or background specks), the cropped RGB image is converted to HSV and pixels falling inside the fixed Hue reject band <code>H ∈ [100, 140]</code> (OpenCV <code>0–179</code> scale) are masked to black <code>(0, 0, 0)</code>.
+        </p>
+      </div>
+      <div class="visual-pair" id="stage2Visuals">
+        <figure class="img-panel">
+          <div class="img-frame">
+            <img id="imgHueMap" alt="HSV Hue channel heatmap" loading="lazy" />
+          </div>
+          <figcaption>
+            <strong>(a) HSV Hue Channel Map (Fig. 3b)</strong>
+            <span>Isolated non-paddy artifacts appear as distinct hue shifts in <code>H ∈ [100, 140]</code></span>
+          </figcaption>
+        </figure>
+        <figure class="img-panel">
+          <div class="img-frame">
+            <img id="imgDenoised" alt="Denoised paddy image after Hue band-stop thresholding" loading="lazy" />
+          </div>
+          <figcaption>
+            <strong>(b) Band-Stop Denoised Paddy Image</strong>
+            <span id="artifactRemovedText">Pixels in <code>H ∈ [100, 140]</code> removed</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="card pipeline-stage" id="stage3Card" data-stage="3">
+      <div class="stage-head">
+        <span class="stage-tag">Stage 3 · Section IV.C (Fig. 4)</span>
+        <h3>HSV Color-Splitting: Green vs. Brown Husk Segments</h3>
+        <p>
+          Higher moisture preserves chlorophyll pigments and surface gloss, whereas dry husks shift toward dull brown. We decouple hue from illumination in HSV space and apply in-range thresholding with <code>H ∈ [25, 85]</code>, <code>S ∈ [35, 255]</code>, <code>V ∈ [35, 255]</code> to isolate the <strong>Green segment</strong>; the <strong>Brown segment</strong> is defined as its complement among valid paddy pixels.
+        </p>
+      </div>
+
+      <div class="ratio-bar-container" id="segmentRatioContainer">
+        <div class="ratio-labels">
+          <span class="ratio-green-lbl">Green Husk Segment: <strong id="greenPctLabel">--%</strong></span>
+          <span class="ratio-brown-lbl">Brown Husk Segment: <strong id="brownPctLabel">--%</strong></span>
+        </div>
+        <div class="ratio-track">
+          <div class="ratio-fill-green" id="greenRatioBar" style="width: 50%"></div>
+        </div>
+        <p class="ratio-caption">
+          36 of the 38 features with <code>|r| ≥ 0.80</code> come from the <strong>Green segment</strong> (and 2 from the <strong>Full image</strong>), confirming that green-region optical properties carry the primary moisture signal.
+        </p>
+      </div>
+
+      <div class="visual-pair" id="stage3Visuals">
+        <figure class="img-panel">
+          <div class="img-frame">
+            <img id="imgGreen" alt="Segmented green portion of rice paddy" loading="lazy" />
+          </div>
+          <figcaption>
+            <strong>(a) Green Portion Segment (Fig. 4a)</strong>
+            <span><code>H ∈ [25, 85], S ∈ [35, 255], V ∈ [35, 255]</code> — source of 36/38 predictors</span>
+          </figcaption>
+        </figure>
+        <figure class="img-panel">
+          <div class="img-frame">
+            <img id="imgBrown" alt="Segmented brown portion of rice paddy" loading="lazy" />
+          </div>
+          <figcaption>
+            <strong>(b) Brown Portion Segment (Fig. 4b)</strong>
+            <span>Complement of green segment among valid paddy pixels</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Stage 4: 38 Extracted Features & Z-Scores -->
+    <section class="card pipeline-stage" id="stage4Card" data-stage="4">
+      <div class="stage-head">
+        <span class="stage-tag">Stage 4 · Section IV.D, IV.E &amp; V.A</span>
+        <h3>Color Feature Extraction &amp; Correlation Screening (243 → 38 Predictors)</h3>
+        <p>
+          81 color features are extracted from each of the 3 images (Full, Green segment, Brown segment = 243 total variables). Screening for <code>|r| ≥ 0.80</code> and <code>p &lt; 0.01</code> retains the <strong>38 predictors</strong> below. Each predictor <var>x<sub>j</sub></var> is standardized using the training set (<var>N</var> = 251) mean <var>μ<sub>j</sub></var> and standard deviation <var>σ<sub>j</sub></var>:
+          <code>z<sub>j</sub> = (x<sub>j</sub> − μ<sub>j</sub>) / σ<sub>j</sub></code>.
+        </p>
+      </div>
+
+      <div class="table-toolbar">
+        <div class="filter-pills" id="featureCategoryPills">
+          <button type="button" class="pill active" data-group="ALL">All 38 Features</button>
+          <button type="button" class="pill" data-group="Shannon Entropy">Shannon Entropy (5)</button>
+          <button type="button" class="pill" data-group="HSV Statistics & Bins">HSV Stats &amp; Bins (13)</button>
+          <button type="button" class="pill" data-group="Greenness Indices">Greenness Indices (7)</button>
+          <button type="button" class="pill" data-group="CIELab Color Space">CIELab (5)</button>
+          <button type="button" class="pill" data-group="RGB Statistics">RGB Stats (4)</button>
+          <button type="button" class="pill" data-group="Chromaticity & Ratios">Chromaticity &amp; Ratios (3)</button>
+          <button type="button" class="pill" data-group="Colorfulness">Colorfulness (1)</button>
+        </div>
+        <input type="search" id="featureSearchInput" class="search-input" placeholder="Filter by feature name (e.g. Entropy_S, ExG)..." />
+      </div>
+
+      <div class="table-scroll">
+        <table class="feature-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Feature</th>
+              <th>Segment</th>
+              <th>Category</th>
+              <th class="num-col">Raw Value (<var>x<sub>j</sub></var>)</th>
+              <th class="num-col">Train <var>μ<sub>j</sub></var> ± <var>σ<sub>j</sub></var></th>
+              <th class="num-col">Z-Score (<var>z<sub>j</sub></var>)</th>
+              <th class="num-col">Pearson <var>r</var></th>
+              <th class="num-col">Std. Weight (<var>β<sub>j</sub><sup>std</sup></var>)</th>
+              <th class="num-col">Term (<var>β<sub>j</sub><sup>std</sup> · z<sub>j</sub></var>)</th>
+            </tr>
+          </thead>
+          <tbody id="featureTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Stage 5: OLS Regression Output, Interactive Fig. 6 & Table I ANOVA -->
+    <section class="card pipeline-stage" id="stage5Card" data-stage="5">
+      <div class="stage-head">
+        <span class="stage-tag">Stage 5 · Section IV.F, IV.G, V.B &amp; V.C (Table I &amp; Fig. 6)</span>
+        <h3>Multiple Linear Regression Prediction &amp; Held-Out Test Evaluation</h3>
+        <p>
+          The Ordinary Least Squares (OLS) regression model is fitted on the z-score standardized training set (<var>N</var> = 251) and back-transformed to original feature units:
+          <code>ŷ = β<sub>0</sub> + ∑<sub>j=1</sub><sup>38</sup> β<sub>j</sub> x<sub>j</sub></code>.
+          Click any point in the Fig. 6 scatter chart below to inspect that test sample.
+        </p>
+      </div>
+
+      <div class="stage5-grid">
+        <!-- Left: Prediction Breakdown & Gauge -->
+        <div class="prediction-panel">
+          <h4>Selected Sample Prediction Breakdown</h4>
+          <div class="gauge-card">
+            <div class="gauge-row">
+              <span class="gauge-lbl">Ground Truth (<var>y</var>)</span>
+              <div class="gauge-track">
+                <div class="gauge-bar gauge-bar-actual" id="barActual" style="width: 50%"></div>
+              </div>
+              <strong class="gauge-val" id="gaugeActualVal">--%</strong>
+            </div>
+            <div class="gauge-row">
+              <span class="gauge-lbl">Model Predicted (<var>ŷ</var>)</span>
+              <div class="gauge-track">
+                <div class="gauge-bar gauge-bar-pred" id="barPred" style="width: 50%"></div>
+              </div>
+              <strong class="gauge-val" id="gaugePredVal">--%</strong>
+            </div>
+          </div>
+
+          <div class="equation-box">
+            <div class="eq-title">Standardized Linear Combination</div>
+            <div class="eq-math" id="eqBreakdownText">
+              ŷ = β₀ + ∑ (βⱼ · zⱼ)
+            </div>
+          </div>
+
+          <h4 class="anova-heading">Table I — Regression ANOVA (<var>N</var> = 251 Development Set)</h4>
+          <table class="anova-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th class="num-col">SS</th>
+                <th class="num-col">df</th>
+                <th class="num-col">MS</th>
+                <th class="num-col">F</th>
+                <th class="num-col">p-value</th>
+              </tr>
+            </thead>
+            <tbody id="anovaTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Right: Interactive Fig. 6 Scatter Chart -->
+        <div class="chart-panel">
+          <div class="chart-header">
+            <h4>Fig. 6 — Actual vs. Predicted Moisture (45 Held-Out Test Samples)</h4>
+            <span class="chart-hint">Click any dot to inspect that sample</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="fig6Canvas" width="680" height="400"></canvas>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="dot dot-actual"></span> Actual Moisture (%)</span>
+            <span class="legend-item"><span class="dot dot-pred"></span> Predicted Moisture (%)</span>
+            <span class="legend-item"><span class="dot dot-active"></span> Currently Selected Sample</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Hidden offscreen canvas for custom image feature extraction -->
+  <canvas id="offscreenCanvas" hidden></canvas>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>
+        <strong>Developing Prediction Model for Estimating Moisture of Rice Paddy using Correlation Between Color Values of Rice Paddy and Moisture Content</strong><br />
+        Kirati Pothidang, Ritchanon Bunseng, Waiyawat Suansawan · Princess Chulabhorn Science High School Phetchaburi · IEEE iSAI-NLP 2025
+      </p>
+      <p class="footer-links">
+        <a href="https://ieeexplore.ieee.org/document/11320486" target="_blank" rel="noopener">IEEE Xplore</a> ·
+        <a href="https://github.com/MonGZAZA/Rice-Moisture-Predict-via-Color" target="_blank" rel="noopener">GitHub Repository</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

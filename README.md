@@ -33,6 +33,24 @@ flowchart LR
 
 ---
 
+## Interactive Web Demo
+
+An interactive browser demo is included in [`docs/`](docs/index.html) (ready for GitHub Pages deployment from `main` / `/docs`):
+
+- **Sample Picker & Live Upload:** Step through 12 featured rice paddy test images (with pre-rendered 6-stage visual pipeline previews) or any of the **45 held-out test samples** (`9.9%` – `28.8%` ground-truth moisture), or upload a custom paddy image for live in-browser processing.
+- **Step-by-Step Pipeline Inspection:**
+  1. **Step 1 — Visual Preprocessing & HSV Segmentation:** Inspect raw lightbox capture, border crop `(586, 0, 4252, 3164)`, OpenCV HSV Hue map, Hue `[100, 140]` band-stop background removal, and Green (`H ∈ [35, 85]`) vs. Brown (`H ∈ [10, 30]`) kernel segmentation.
+  2. **Step 2 — 38 Retained Color Features (`|r| ≥ 0.80, p < 0.01`):** Filter and search all 38 retained features (36 Green + 2 Full) with raw values, training z-scores, and Pearson `r`.
+  3. **Step 3 — Standardized OLS Prediction vs. Ground Truth:** Inspect the per-feature contribution waterfall (`w_i · z_i`), full 38-term regression equation, interactive Figure 6 scatter plot (clicking any point selects that sample), and Table I Regression ANOVA (`F(38, 212) = 51.013`).
+
+To run the demo locally:
+```bash
+python3 -m http.server 8080 --directory docs
+# Open http://localhost:8080 in your browser
+```
+
+---
+
 ## Dataset
 
 ### Data Collection & Setup
@@ -102,7 +120,14 @@ rice-moisture-prediction/
 │   ├── 03_train_and_evaluate.py           # Stratified OLS training, ANOVA, and evaluation
 │   ├── predict.py                         # Single-image / batch CLI moisture inference
 │   ├── run_pipeline.py                    # End-to-end pipeline entrypoint
+│   ├── build_demo_site.py                 # Builds docs/data/demo_data.json and 6-stage sample images
 │   └── requirements.txt
+├── docs/                                  # Interactive web demo (GitHub Pages /docs)
+│   ├── index.html
+│   ├── styles.css
+│   ├── app.js
+│   ├── data/demo_data.json
+│   └── assets/samples/                    # 6-stage visual pipeline previews for 12 test samples
 └── outputs/                               # Saved metrics, ANOVA table, equation, plot, and model bundle
 ```
 
