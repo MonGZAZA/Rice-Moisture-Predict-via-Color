@@ -61,7 +61,7 @@ function renderSampleList() {
 
 function selectSample(s) {
   activeSample = s;
-  activeStageKey = "cropped";
+  activeStageKey = s.images && s.images.original ? "original" : "cropped";
 
   document.querySelectorAll(".sample-item").forEach((el) => {
     el.classList.toggle("active", Number(el.dataset.id) === s.id);
@@ -104,8 +104,8 @@ function renderImagePane(s) {
   btnWrap.innerHTML = "";
 
   const stageDefs = [
-    ["cropped", "Cropped"],
     ["original", "Original"],
+    ["cropped", "Cropped"],
     ["denoised", "Denoised"],
     ["green", "Green Mask"],
     ["brown", "Brown Mask"],
@@ -291,8 +291,8 @@ function analyzeUploadedImage(img, filename) {
     green_segment_pct: Number(((grnCount / denom) * 100).toFixed(2)),
     brown_segment_pct: Number(((brnCount / denom) * 100).toFixed(2)),
     images: {
-      cropped: croppedUrl,
       original: origUrl,
+      cropped: croppedUrl,
       denoised: denoisedUrl,
       green: greenUrl,
       brown: brownUrl,
