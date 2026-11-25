@@ -168,6 +168,49 @@ def generate_sample_stages(sample_id: int) -> dict:
     }
 
 
+def generate_thumb(sample_id: int) -> dict:
+    """Generate a compact cropped thumbnail and green/brown pixel percentages for any test sample."""
+    fname = f"{sample_id:04d}.jpg"
+    img_path = PICTURES_DIR / fname
+    img_bgr = cv2.imread(str(img_path))
+    if img_bgr is None:
+        raise FileNotFoundError(f"Missing image: {img_path}")
+
+    out_folder = ASSETS_SAMPLES_DIR / f"{sample_id:04d}"
+    out_folder.mkdir(parents=True, exist_ok=True)
+
+    x1, y1, x2, y2 = CROP_BOX
+    cropped = img_bgr[y1:y2, x1:x2].copy()
+    _save_jpg(out_folder / "cropped.jpg", _resize_web(cropped, max_width=420), quality=82)
+
+    hsv = cv2.cvtColor(cropped, cv2.COLOR_BGR2HSV)
+    hue = hsv[..., 0]
+    artifact_mask = (hue >= DENOISE_HUE_LOW) & (hue <= DENOISE_HUE_HIGH)
+    valid_mask = ~artifact_mask & ~(
+        (cropped[..., 0] == 0) & (cropped[..., 1] == 0) & (cropped[..., 2] == 0)
+    )
+    lower = np.array(GREEN_HSV_LOWER, dtype=np.uint8)
+    upper = np.array(GREEN_HSV_UPPER, dtype=np.uint8)
+    green_raw = cv2.inRange(hsv, lower, upper) > 0
+    green_mask = green_raw & valid_mask
+    brown_mask = (~green_raw) & valid_mask
+
+    total_px = float(cropped.shape[0] * cropped.shape[1])
+    valid_px = float(max(1, np.count_nonzero(valid_mask)))
+    artifact_pct = float(np.count_nonzero(artifact_mask) / total_px * 100.0)
+    green_pct = float(np.count_nonzero(green_mask) / valid_px * 100.0)
+    brown_pct = float(np.count_nonzero(brown_mask) / valid_px * 100.0)
+
+    return {
+        "artifact_removed_pct": round(artifact_pct, 3),
+        "green_segment_pct": round(green_pct, 2),
+        "brown_segment_pct": round(brown_pct, 2),
+        "images": {
+            "cropped": f"assets/samples/{sample_id:04d}/cropped.jpg",
+        },
+    }
+
+
 def main() -> None:
     ASSETS_SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
     DATA_OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -251,6 +294,8 @@ def main() -> None:
         }
         if sid in stage_info_by_id:
             rec.update(stage_info_by_id[sid])
+        else:
+            rec.update(generate_thumb(sid))
         test_samples.append(rec)
 
     anova_df = pd.read_csv(OUTPUTS_DIR / "regression_anova_table.csv")
