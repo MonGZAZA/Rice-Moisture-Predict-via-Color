@@ -1,6 +1,7 @@
 # Rice Paddy Moisture Prediction via Image Color Analysis
 
 [![IEEE Xplore](https://img.shields.io/badge/IEEE%20Xplore-iSAI--NLP%202025-00629B?logo=ieee&logoColor=white)](https://ieeexplore.ieee.org/document/11320486)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-2ea44f?logo=github)](https://mongzaza.github.io/Rice-Moisture-Predict-via-Color/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](code/requirements.txt)
 
 Official implementation and dataset for our paper:
@@ -35,7 +36,9 @@ flowchart LR
 
 ## Interactive Web Demo
 
-An interactive browser demo is included in [`docs/`](docs/index.html) (ready for GitHub Pages deployment from `main` / `/docs`):
+👉 **[Launch Interactive Demo (GitHub Pages)](https://mongzaza.github.io/Rice-Moisture-Predict-via-Color/)**
+
+The interactive browser demo in [`docs/`](docs/index.html) lets anyone explore the full 38-feature IEEE iSAI-NLP 2025 pipeline directly in the browser:
 
 - **Sample Picker & Live Upload:** Step through 12 featured rice paddy test images (with pre-rendered 6-stage visual pipeline previews) or any of the **45 held-out test samples** (`9.9%` – `28.8%` ground-truth moisture), or upload a custom paddy image for live in-browser processing.
 - **Step-by-Step Pipeline Inspection:**
