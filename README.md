@@ -116,44 +116,6 @@ rice-moisture-prediction/
 
 ---
 
-## Quick Start
-
-### 1. Install Dependencies
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r code/requirements.txt
-```
-
-### 2. Train & Evaluate the Model
-```bash
-python3 code/run_pipeline.py
-```
-Runs correlation screening and OLS training/evaluation using `data/features/` and writes all artifacts to `outputs/`:
-- `pearson_all_243.csv` & `selected_features_summary.csv`
-- `regression_anova_table.csv`
-- `actual_vs_predicted.png`
-- `model_coefficients.csv` & `regression_equation.txt`
-- `test_predictions.csv`, `metrics_summary.json`, and `moisture_ols_model.joblib`
-
-### 3. Predict Moisture from Raw Paddy Images
-```bash
-python3 code/predict.py data/pictures/0001.jpg data/pictures/0294.jpg
-```
-
-### 4. Extract Features & Train From Raw Pictures
-```bash
-python3 code/run_pipeline.py --mode extract_and_train
-```
-You can also run each stage independently:
-```bash
-python3 code/01_preprocess_and_extract.py --mapping data/mapping.csv --pictures data/pictures --out-dir data/features
-python3 code/02_correlation_select.py --features-dir data/features --out-dir outputs
-python3 code/03_train_and_evaluate.py --data outputs/Correlated_FULL.csv --out-dir outputs
-```
-
----
-
 ## Citation
 
 If you use this code or dataset in your research, please cite:
