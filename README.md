@@ -9,7 +9,7 @@ Official implementation and dataset for our paper:
 > **[Developing Prediction Model for Estimating Moisture of Rice Paddy using Correlation Between Color Values of Rice Paddy and Moisture Content](https://ieeexplore.ieee.org/document/11320486)**  
 > *Kirati Pothidang, Ritchanon Bunseng, Waiyawat Suansawan*  
 > Department of Mathematics, Princess Chulabhorn Science High School Phetchaburi, Thailand  
-> Published in *IEEE iSAI-NLP 2025* · [IEEE Xplore](https://ieeexplore.ieee.org/document/11320486)
+> Published in *IEEE iSAI-NLP 2025* · [IEEE Xplore](https://ieeexplore.ieee.org/document/11320486) · [Web Demo](https://mongzaza.github.io/Rice-Moisture-Predict-via-Color/)
 
 ---
 
@@ -30,26 +30,6 @@ flowchart LR
     E --> F["Pearson Screening<br/>|r| ≥ 0.80, p < 0.01 → 38"]
     F --> G["Z-Score OLS Regression<br/>10-Decile Stratified 85/15"]
     G --> H["Predicted Moisture (%)<br/>+ ANOVA & Diagnostics"]
-```
-
----
-
-## Interactive Web Demo
-
-👉 **[Launch Interactive Demo (GitHub Pages)](https://mongzaza.github.io/Rice-Moisture-Predict-via-Color/)**
-
-The interactive browser demo in [`docs/`](docs/index.html) lets anyone explore the full 38-feature IEEE iSAI-NLP 2025 pipeline directly in the browser:
-
-- **Sample Picker & Live Upload:** Step through 12 featured rice paddy test images (with pre-rendered 6-stage visual pipeline previews) or any of the **45 held-out test samples** (`9.9%` – `28.8%` ground-truth moisture), or upload a custom paddy image for live in-browser processing.
-- **Step-by-Step Pipeline Inspection:**
-  1. **Step 1 — Visual Preprocessing & HSV Segmentation:** Inspect raw lightbox capture, border crop `(586, 0, 4252, 3164)`, OpenCV HSV Hue map, Hue `[100, 140]` band-stop background removal, and Green (`H ∈ [35, 85]`) vs. Brown (`H ∈ [10, 30]`) kernel segmentation.
-  2. **Step 2 — 38 Retained Color Features (`|r| ≥ 0.80, p < 0.01`):** Filter and search all 38 retained features (36 Green + 2 Full) with raw values, training z-scores, and Pearson `r`.
-  3. **Step 3 — Standardized OLS Prediction vs. Ground Truth:** Inspect the per-feature contribution waterfall (`w_i · z_i`), full 38-term regression equation, interactive Figure 6 scatter plot (clicking any point selects that sample), and Table I Regression ANOVA (`F(38, 212) = 51.013`).
-
-To run the demo locally:
-```bash
-python3 -m http.server 8080 --directory docs
-# Open http://localhost:8080 in your browser
 ```
 
 ---
